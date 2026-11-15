@@ -1,0 +1,417 @@
+<title>Pluto Storybook</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;600&display=swap">
+<style>
+  /* Layout concept: a night-sky letter archive. A schematic map picks the spacecraft, a letter card lets it speak, a to-scale chart shows how long ago each mission ended. */
+  :root {
+    --bg: #0B1F3A;
+    --panel: #112B4D;
+    --panel-soft: #0E2544;
+    --ink: #F2F5FA;
+    --muted: #9DB7D9;
+    --gold: #F6B93B;
+    --gold-hi: #FFE08A;
+    --gold-lo: #C98A0A;
+    --line: #24406A;
+    --earth: #4DA3FF;
+    --moon: #C9CFDA;
+    --mars: #C9683A;
+    --display: "Fraunces", Georgia, "Times New Roman", serif;
+    --ui: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image: radial-gradient(ellipse at 50% -8%, rgba(246,185,59,.14), transparent 55%);
+    background-repeat: no-repeat;
+    color: var(--ink);
+    font-family: var(--ui);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 760px;
+    margin-inline: auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  a { color: var(--gold-hi); }
+  :focus-visible { outline: 3px solid var(--gold-hi); outline-offset: 3px; border-radius: 6px; }
+
+  /* header */
+  .top { display: flex; align-items: center; gap: 12px; padding-block: 18px 6px; }
+  .top svg { width: 40px; height: 40px; flex: none; }
+  .brand { font-weight: 600; letter-spacing: .28em; font-size: 1rem; }
+  .brand small { display: block; letter-spacing: .12em; font-weight: 400; font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+  /* hero */
+  .hero { padding-block: 28px 12px; }
+  .eyebrow { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin: 0 0 12px; }
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(2.2rem, 9vw, 3.8rem);
+    line-height: 1.05;
+    margin: 0 0 16px;
+    text-wrap: balance;
+  }
+  .lead { font-size: 1.1rem; color: var(--muted); margin: 0; max-width: 56ch; }
+
+  h2 { font-family: var(--display); font-weight: 600; font-size: 1.6rem; margin: 0 0 6px; text-wrap: balance; }
+  .sub { color: var(--muted); margin: 0 0 16px; font-size: .95rem; }
+  section { padding-block: 28px 8px; }
+
+  /* map */
+  .map-card { background: var(--panel-soft); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+  .map-card svg { display: block; width: 100%; height: auto; }
+  .map-note { font-size: .78rem; color: var(--muted); margin: 8px 4px 2px; }
+  .node { cursor: pointer; }
+  .node .dot { fill: var(--bg); stroke: var(--gold); stroke-width: 2.5; transition: fill .2s; }
+  .node.on .dot { fill: var(--gold); }
+  .node .ring { fill: none; stroke: var(--gold-hi); stroke-width: 1.5; opacity: 0; }
+  .node.on .ring { opacity: .9; animation: pulse 2.2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+  .node text { fill: var(--ink); font-family: var(--ui); font-size: 12.5px; font-weight: 500; pointer-events: none; }
+  .node.on text { fill: var(--gold-hi); }
+  .lbl { fill: var(--muted); font-family: var(--ui); font-size: 11.5px; }
+  @keyframes pulse { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(2.4); opacity: 0; } }
+
+  /* chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+  .chip {
+    font: 500 .92rem var(--ui);
+    color: var(--ink);
+    background: transparent;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    padding: 9px 16px;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: #0B1F3A; font-weight: 600; }
+
+  /* letter */
+  .letter {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px 20px 20px;
+  }
+  .letter.swap { animation: fade .35s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .l-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  .l-name { font-family: var(--display); font-weight: 600; font-size: 2rem; line-height: 1.1; margin: 0; }
+  .pill { font-size: .76rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gold-hi); border: 1px solid var(--gold-lo); border-radius: 999px; padding: 4px 11px; }
+  .l-where { color: var(--muted); font-size: .92rem; margin: 2px 0 18px; }
+  .l-body p { font-family: var(--display); font-weight: 500; font-size: 1.12rem; line-height: 1.65; margin: 0 0 14px; max-width: 60ch; }
+  .l-body p:first-child::first-line { color: var(--gold-hi); }
+  .facts { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line); }
+  .facts div { min-width: 0; }
+  .facts dt { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+  .facts dd { margin: 2px 0 0; font-size: .96rem; }
+  @media (min-width: 560px) { .facts { grid-template-columns: 1fr 1fr; gap: 14px 24px; } }
+  .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 22px; }
+  .btn {
+    font: 600 .92rem var(--ui);
+    color: var(--ink);
+    background: transparent;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 16px;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--gold); }
+  .btn.go { background: var(--gold); border-color: var(--gold); color: #0B1F3A; }
+
+  /* silence chart */
+  .plot { position: relative; padding-top: 6px; }
+  .gl { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .gl.now { background: repeating-linear-gradient(to bottom, var(--gold) 0 5px, transparent 5px 9px); width: 2px; }
+  .row { position: relative; margin-bottom: 14px; }
+  .rowhead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: .86rem; margin-bottom: 5px; }
+  .rowhead .nm { font-weight: 600; }
+  .rowhead .yrs { color: var(--muted); }
+  .track { position: relative; height: 14px; }
+  .seg { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+  .seg.active { background: var(--gold); min-width: 5px; z-index: 1; }
+  .seg.silent { background: repeating-linear-gradient(135deg, rgba(157,183,217,.5) 0 4px, rgba(157,183,217,.16) 4px 8px); }
+  .axis { position: relative; height: 22px; margin-top: 2px; font-size: .74rem; color: var(--muted); }
+  .axis span { position: absolute; top: 4px; transform: translateX(-50%); white-space: nowrap; }
+  .axis span.end { transform: translateX(-100%); }
+  .axis span.nowlbl { color: var(--gold-hi); top: 4px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: .82rem; color: var(--muted); }
+  .legend i { display: inline-block; width: 22px; height: 10px; border-radius: 2px; margin-right: 7px; vertical-align: middle; }
+  .legend .a { background: var(--gold); }
+  .legend .n { width: 2px; height: 14px; border-radius: 0; background: repeating-linear-gradient(to bottom, var(--gold) 0 4px, transparent 4px 7px); margin-right: 9px; }
+  .legend .s { background: repeating-linear-gradient(135deg, rgba(157,183,217,.5) 0 4px, rgba(157,183,217,.16) 4px 8px); }
+
+  footer { padding-block: 34px 40px; color: var(--muted); font-size: .86rem; }
+  footer p { margin: 0 0 8px; max-width: 62ch; }
+  @media (prefers-reduced-motion: reduce) {
+    .node.on .ring, .letter.swap { animation: none; }
+    .node.on .ring { opacity: .9; }
+  }
+</style>
+
+<header class="top wrap">
+  <svg viewBox="0 0 100 100" aria-hidden="true">
+    <defs>
+      <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE08A"/><stop offset=".55" stop-color="#F6B93B"/><stop offset="1" stop-color="#D98E04"/></linearGradient>
+      <radialGradient id="pg" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#FFF0C2"/><stop offset=".45" stop-color="#F6B93B"/><stop offset="1" stop-color="#B8730A"/></radialGradient>
+    </defs>
+    <circle cx="50" cy="50" r="46" fill="none" stroke="url(#lg)" stroke-width="4"/>
+    <ellipse cx="50" cy="50" rx="36" ry="11" fill="none" stroke="#fff" stroke-width="2.4" transform="rotate(-28 50 50)" opacity=".9"/>
+    <circle cx="50" cy="50" r="21" fill="url(#pg)"/>
+    <circle cx="82" cy="40" r="4" fill="#FFE08A"/>
+  </svg>
+  <div class="brand">PLUTO<small>ABANDONED BUT NOT FORGOTTEN</small></div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="eyebrow">NASA Space Apps Challenge 2026 · Kothamangalam</p>
+    <h1>Letters from the Left Behind</h1>
+    <p class="lead">Five NASA machines finished their jobs and stayed right where they stopped. I wanted to hear what they would say, so I let each one tell its own story. Tap one to listen.</p>
+  </section>
+
+  <section class="wrap" aria-labelledby="map-h">
+    <h2 id="map-h">Where they rest</h2>
+    <p class="sub">Pick a spacecraft on the map or from the list below it.</p>
+    <div class="map-card">
+      <svg viewBox="0 0 400 250" role="group" aria-label="Schematic map showing where five spacecraft rest">
+        <!-- paths -->
+        <path d="M50 125 Q 80 215 130 190" fill="none" stroke="#24406A" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <path d="M50 125 Q 200 215 245 130" fill="none" stroke="#24406A" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <path d="M50 125 Q 250 -10 372 40" fill="none" stroke="#24406A" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <path d="M366 36 l10 3 l-7 8" fill="none" stroke="#24406A" stroke-width="1.5"/>
+        <!-- bodies -->
+        <circle cx="50" cy="125" r="15" fill="#4DA3FF"/>
+        <text class="lbl" x="50" y="154" text-anchor="middle">Earth</text>
+        <circle cx="105" cy="68" r="9" fill="#C9CFDA"/>
+        <text class="lbl" x="105" y="48" text-anchor="middle">Moon</text>
+        <circle cx="252" cy="126" r="13" fill="#C9683A"/>
+        <text class="lbl" x="252" y="108" text-anchor="middle">Mars</text>
+        <!-- nodes -->
+        <g class="node" data-id="eagle" tabindex="0" role="button" aria-label="Eagle, on the Moon">
+          <circle class="ring" cx="105" cy="68" r="8"/><circle class="dot" cx="105" cy="68" r="5.5"/><circle cx="105" cy="68" r="24" fill="transparent"/>
+          <text x="125" y="72">Eagle</text>
+        </g>
+        <g class="node" data-id="kepler" tabindex="0" role="button" aria-label="Kepler, in an Earth-trailing orbit">
+          <circle class="ring" cx="130" cy="190" r="8"/><circle class="dot" cx="130" cy="190" r="5.5"/><circle cx="130" cy="190" r="24" fill="transparent"/>
+          <text x="130" y="219" text-anchor="middle">Kepler</text>
+        </g>
+        <g class="node" data-id="opportunity" tabindex="0" role="button" aria-label="Opportunity, on Mars">
+          <circle class="ring" cx="236" cy="152" r="8"/><circle class="dot" cx="236" cy="152" r="5.5"/><circle cx="236" cy="152" r="22" fill="transparent"/>
+          <text x="236" y="182" text-anchor="middle">Opportunity</text>
+        </g>
+        <g class="node" data-id="ingenuity" tabindex="0" role="button" aria-label="Ingenuity, on Mars">
+          <circle class="ring" cx="292" cy="112" r="8"/><circle class="dot" cx="292" cy="112" r="5.5"/><circle cx="292" cy="112" r="22" fill="transparent"/>
+          <text x="292" y="96" text-anchor="middle">Ingenuity</text>
+        </g>
+        <g class="node" data-id="pioneer10" tabindex="0" role="button" aria-label="Pioneer 10, leaving the solar system">
+          <circle class="ring" cx="350" cy="44" r="8"/><circle class="dot" cx="350" cy="44" r="5.5"/><circle cx="350" cy="44" r="22" fill="transparent"/>
+          <text x="388" y="22" text-anchor="end">Pioneer 10</text>
+        </g>
+        <text class="lbl" x="392" y="68" text-anchor="end">leaving the</text>
+        <text class="lbl" x="392" y="82" text-anchor="end">solar system</text>
+      </svg>
+      <p class="map-note">Schematic only, not to scale.</p>
+    </div>
+    <ul class="chips" id="chips"></ul>
+  </section>
+
+  <section class="wrap" aria-labelledby="story-h">
+    <h2 id="story-h" class="sr" style="position:absolute;left:-9999px">The letter</h2>
+    <article class="letter" id="letter" aria-live="polite"></article>
+  </section>
+
+  <section class="wrap" aria-labelledby="sil-h">
+    <h2 id="sil-h">How long ago their missions ended</h2>
+    <p class="sub">Gold marks the years each machine was working. The hatched bar is the time since its mission ended, drawn to scale.</p>
+    <div class="plot" id="plot"></div>
+    <div class="axis" id="axis"></div>
+    <div class="legend"><span><i class="a"></i>Working</span><span><i class="s"></i>Mission over, still out there</span><span><i class="n"></i>Today</span></div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>I made this on my own for the Abandoned but not Forgotten challenge at the 2026 NASA Space Apps Challenge in Kothamangalam. Made by Anagha Pradeep. Built with AI assistance (Claude) and Canva.</p>
+  <p>Facts come from NASA mission pages (<a href="https://www.jpl.nasa.gov/" target="_blank" rel="noopener">JPL</a>, <a href="https://science.nasa.gov/mission/kepler" target="_blank" rel="noopener">NASA Science</a> and the Apollo 11 mission account) and from Spaceflight Now's 2003 coverage of Pioneer 10. The letters are my own imagined voice for each spacecraft.</p>
+</footer>
+
+<script>
+(function () {
+  var crafts = [
+    {
+      id: "eagle", name: "Eagle", chip: "Eagle",
+      where: "The Moon · Sea of Tranquility",
+      pill: "Still at Tranquility Base",
+      letter: [
+        "People remember the half of Eagle that flew home. I am the other half.",
+        "On 20 July 1969 I carried Neil Armstrong and Buzz Aldrin down to the Sea of Tranquility. About twenty-one hours later, the top of our lander fired its engine and rose from my back. I was its launch pad, and then my job was done.",
+        "I have stayed here ever since. There is no wind or rain on the Moon to wear me down, so I sit exactly where I landed, waiting for the next visitors."
+      ],
+      facts: [
+        ["Arrived", "20 July 1969"],
+        ["Left behind", "21 July 1969, when the upper half lifted off"],
+        ["Today", "Resting where it landed, on the Moon"],
+        ["Why it matters", "It was the platform that let two people land on another world and return"]
+      ],
+      start: 1969.55, end: 1969.56
+    },
+    {
+      id: "pioneer10", name: "Pioneer 10", chip: "Pioneer 10",
+      where: "Deep space · leaving the solar system",
+      pill: "Last signal January 2003",
+      letter: [
+        "I left Earth in 1972, built to reach Jupiter. On the way I became the first spacecraft to cross the asteroid belt, and in December 1973 I sent home the first close-up pictures of Jupiter.",
+        "Then I kept going. My last faint signal reached you in January 2003, from about 12 billion kilometres away.",
+        "I carry a small plaque with a message for anyone who might find me. I am heading roughly toward the star Aldebaran, and I will need about two million years to get there."
+      ],
+      facts: [
+        ["Launched", "2 March 1972"],
+        ["Last signal", "January 2003"],
+        ["Today", "Drifting silently out of the solar system"],
+        ["Why it matters", "First to cross the asteroid belt and first to photograph Jupiter up close"]
+      ],
+      start: 1972.17, end: 2003.06
+    },
+    {
+      id: "opportunity", name: "Opportunity", chip: "Opportunity",
+      where: "Mars · Meridiani Planum",
+      pill: "Last contact June 2018",
+      letter: [
+        "Hello, Earth. They built me to last 90 Martian days. I stayed for more than fourteen years.",
+        "I rolled across Meridiani Planum, a flat red plain, and read its rocks like pages in a diary. Tiny mineral spheres and layered stone told me that liquid water once soaked this place.",
+        "In June 2018 a dust storm covered the sky and sunlight could no longer reach my solar panels. I could not call home. I am still parked in Perseverance Valley, and every measurement I made is safe in your archives."
+      ],
+      facts: [
+        ["Landed", "24 January 2004"],
+        ["Last contact", "10 June 2018, during a global dust storm"],
+        ["Today", "Parked in Perseverance Valley, Mars"],
+        ["Why it matters", "It found mineral clues that water once flowed on Mars, and drove about 45 km, more than a marathon"]
+      ],
+      start: 2004.07, end: 2018.44
+    },
+    {
+      id: "kepler", name: "Kepler", chip: "Kepler",
+      where: "Space · Earth-trailing orbit around the Sun",
+      pill: "Retired October 2018",
+      letter: [
+        "I never went anywhere exciting. I stared at one patch of sky for years, watching about 150,000 stars and waiting for one to dim by a tiny amount.",
+        "A small dip in starlight means a planet has crossed in front of its star. I found thousands of them, more than 2,600 confirmed. Because of me, we know that planets are everywhere.",
+        "In 2018 my fuel ran out and NASA retired me. Now I drift quietly in an orbit that trails Earth around the Sun."
+      ],
+      facts: [
+        ["Launched", "6 March 2009"],
+        ["Retired", "30 October 2018, out of fuel"],
+        ["Today", "Drifting in an Earth-trailing orbit"],
+        ["Why it matters", "It showed that planets are common, including small rocky ones"]
+      ],
+      start: 2009.18, end: 2018.83
+    },
+    {
+      id: "ingenuity", name: "Ingenuity", chip: "Ingenuity",
+      where: "Mars · Jezero Crater",
+      pill: "Grounded January 2024",
+      letter: [
+        "I was a test. They gave me five flights and about a month. I flew seventy-two times.",
+        "On 19 April 2021 I rose three metres above Jezero Crater, hovered, and came back down. It was the first powered, controlled flight on another planet. Mars has very thin air, so my blades had to spin far faster than a helicopter's on Earth.",
+        "In January 2024 my rotor blades were damaged and I could not fly again. I stand on the red dust now, and the next flying robots on other worlds will build on what I showed."
+      ],
+      facts: [
+        ["Landed", "18 February 2021, with the Perseverance rover"],
+        ["Last flight", "18 January 2024, after 72 flights"],
+        ["Today", "Standing on Mars with damaged rotor blades"],
+        ["Why it matters", "It proved a powered aircraft can fly in the thin air of Mars"]
+      ],
+      start: 2021.13, end: 2024.07
+    }
+  ];
+
+  var NOW = (function () { var d = new Date(); return d.getFullYear() + (d.getMonth() + (d.getDate() / 31)) / 12; })();
+  var cur = 0;
+  var letter = document.getElementById("letter");
+  var chips = document.getElementById("chips");
+
+  function indexOf(id) { for (var i = 0; i < crafts.length; i++) if (crafts[i].id === id) return i; return -1; }
+
+  function silentYears(c) { return Math.max(0, Math.floor(NOW - c.end)); }
+
+  function render(animate) {
+    var c = crafts[cur];
+    var prev = crafts[(cur + crafts.length - 1) % crafts.length];
+    var next = crafts[(cur + 1) % crafts.length];
+    var html = "";
+    html += '<div class="l-head"><h3 class="l-name">' + c.name + '</h3><span class="pill">' + c.pill + '</span></div>';
+    html += '<p class="l-where">' + c.where + '</p><div class="l-body">';
+    c.letter.forEach(function (p) { html += "<p>" + p + "</p>"; });
+    html += '</div><dl class="facts">';
+    c.facts.forEach(function (f) { html += "<div><dt>" + f[0] + "</dt><dd>" + f[1] + "</dd></div>"; });
+    html += '</dl><div class="nav"><button class="btn" id="prev" type="button">&larr; ' + prev.name + '</button><button class="btn go" id="next" type="button">' + next.name + ' &rarr;</button></div>';
+    letter.innerHTML = html;
+    if (animate) { letter.classList.remove("swap"); void letter.offsetWidth; letter.classList.add("swap"); }
+    document.getElementById("prev").onclick = function () { select((cur + crafts.length - 1) % crafts.length, true); };
+    document.getElementById("next").onclick = function () { select((cur + 1) % crafts.length, true); };
+
+    var btns = chips.querySelectorAll("button");
+    for (var i = 0; i < btns.length; i++) btns[i].setAttribute("aria-pressed", i === cur ? "true" : "false");
+    var nodes = document.querySelectorAll(".node");
+    for (var j = 0; j < nodes.length; j++) nodes[j].classList.toggle("on", nodes[j].getAttribute("data-id") === c.id);
+  }
+
+  function select(i, animate) {
+    cur = i;
+    render(animate);
+    try { history.replaceState(null, "", "#" + crafts[i].id); } catch (e) {}
+  }
+
+  crafts.forEach(function (c, i) {
+    var li = document.createElement("li");
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = c.chip;
+    b.onclick = function () { select(i, true); };
+    li.appendChild(b); chips.appendChild(li);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".node"), function (n) {
+    var go = function () { var i = indexOf(n.getAttribute("data-id")); if (i > -1) select(i, true); };
+    n.addEventListener("click", go);
+    n.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+
+  window.addEventListener("hashchange", function () {
+    var i = indexOf((location.hash || "").slice(1));
+    if (i > -1 && i !== cur) { cur = i; render(true); }
+  });
+
+  /* silence chart, drawn to scale from 1965 to 2030 */
+  var MIN = 1965, MAX = 2030, SPAN = MAX - MIN;
+  function pct(y) { return ((y - MIN) / SPAN) * 100; }
+  var plot = document.getElementById("plot");
+  var axis = document.getElementById("axis");
+  var ph = "";
+  [1970, 1990, 2010, 2030].forEach(function (y) { ph += '<div class="gl" style="left:' + pct(y) + '%"></div>'; });
+  ph += '<div class="gl now" style="left:' + pct(NOW) + '%"></div>';
+  crafts.forEach(function (c) {
+    var sy = silentYears(c);
+    var yrs = c.id === "eagle" ? "1969 · ended " + sy + " years ago" : Math.floor(c.start) + " to " + Math.floor(c.end) + " · ended " + sy + " years ago";
+    ph += '<div class="row"><div class="rowhead"><span class="nm">' + c.name + '</span><span class="yrs">' + yrs + '</span></div>' +
+      '<div class="track"><span class="seg silent" style="left:' + pct(c.end) + '%;width:' + (pct(NOW) - pct(c.end)) + '%"></span>' +
+      '<span class="seg active" style="left:' + pct(c.start) + '%;width:' + (pct(c.end) - pct(c.start)) + '%"></span></div></div>';
+  });
+  plot.innerHTML = ph;
+  var ah = "";
+  [1970, 1990, 2010].forEach(function (y) { ah += '<span style="left:' + pct(y) + '%">' + y + "</span>"; });
+  ah += '<span class="end" style="left:100%">2030</span>';
+  axis.innerHTML = ah;
+
+  var start = indexOf((location.hash || "").slice(1));
+  cur = start > -1 ? start : 0;
+  render(false);
+})();
+</script>
